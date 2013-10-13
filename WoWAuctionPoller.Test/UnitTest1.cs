@@ -12,7 +12,9 @@ namespace WoWAuctionPoller.Test
             WoWAuctionPoller poller = new WoWAuctionPoller()
             {
                 BaseAPI = "http://us.battle.net/api/wow",
-            }
+            };
+
+            poller.QueryAuctions("bonechewer", new System.Collections.Generic.List<String>() { "neutral" });
         }
     }
 }
