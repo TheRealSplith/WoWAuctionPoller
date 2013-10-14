@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Diagnostics;
 
 namespace WoWAuctionPoller
 {
@@ -32,6 +33,9 @@ namespace WoWAuctionPoller
                 .HasOptional(a => a.MyItem)
                 .WithMany()
                 .HasForeignKey(a => a.ItemID);
+
+            modelBuilder.Entity<Item>().Property(i => i.ID)
+                .HasDatabaseGeneratedOption(System.ComponentModel.DataAnnotations.Schema.DatabaseGeneratedOption.None);
         }
     }
     public class WoWAuctionPoller
@@ -113,7 +117,7 @@ namespace WoWAuctionPoller
                             try
                             {
                                 // Get item data
-                                AuctionJSON = web.DownloadString(ItemUrl);
+                                newItemJSON = web.DownloadString(ItemUrl);
                             }
                             catch (Exception ex)
                             {
@@ -129,10 +133,11 @@ namespace WoWAuctionPoller
                         newItem.ID = (Int32)newItemData["id"];
                         newItem.Name = (String)newItemData["name"];
 
+                        Debug.WriteLine(String.Format("New Item:{0}", newItem.ID));
                         context.Items.Add(newItem);
                         context.SaveChanges();
                     }
-
+                    Debug.WriteLine(String.Format("New Auction:{0}", newAuction.AucID));
                     context.Auctions.Add(newAuction);
                 }
             }
