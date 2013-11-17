@@ -20,26 +20,77 @@ namespace WoWAuctionPoller
         {
             InitializeComponent();
             timer = new Timer();
-            timer.Interval = 60 * 60 * 1000;
-        }
+            timer.Interval = 4 * 60 * 60 * 1000;
 
-        protected override void OnStart(string[] args)
-        {
             poller = new WoWAuctionPoller()
             {
                 BaseAPI = "http://us.battle.net/api/wow",
             };
+            // Then we set the timer for more updates
             timer.Elapsed += timer_Elapsed;
-            timer.Start();
+            EventLog.Source = "WoWAuctionPoller";
         }
 
+        protected override void OnStart(string[] args)
+        {
+            timer.Start();
+            // Initial check when service starts
+            timer_Elapsed(null, null); // Everything is loaded from Config
+        }
+
+        /// <summary>
+        /// This runs through the poller operation which collects data from the WoW auction API, parses it into .net objects
+        /// and then adds it to database. Exceptions are caught, but recorded in event viewer, as well as diagnostics.
+        /// </summary>
+        /// <param name="sender">Totally Junk</param>
+        /// <param name="e">Even Junkier</param>
         void timer_Elapsed(object sender, ElapsedEventArgs e)
         {
-            poller.QueryAuctions(ConfigurationManager.AppSettings["server"], ConfigurationManager.AppSettings["factions"].Split(','));
+            Stopwatch sw = new Stopwatch();
+            try
+            {
+                // Actually poll data
+                sw.Start();
+                poller.QueryAuctions(ConfigurationManager.AppSettings["server"], ConfigurationManager.AppSettings["factions"].Split(','));
+                sw.Stop();
+
+                // Record runtime for diagnostic purposes
+                string source = "WoWAuctionPoller";
+                string sLog = "Application";
+
+                if (!EventLog.SourceExists(source))
+                    EventLog.CreateEventSource(source, sLog);
+
+                EventLog.WriteEntry(
+                    source,
+                    String.Format("Minutes:{0}", sw.Elapsed.TotalMinutes),
+                    EventLogEntryType.Information
+                );
+            }
+            catch(Exception ex)
+            {
+                sw.Stop();
+                string source = "WoWAuctionPoller";
+                string sLog = "Application";
+
+                if (!EventLog.SourceExists(source))
+                    EventLog.CreateEventSource(source, sLog);
+
+                EventLog.WriteEntry(
+                    source,
+                    String.Format("Message:{0}\nStack:{1}", ex.Message, ex.StackTrace),
+                    EventLogEntryType.Error
+                );
+            }
+            finally
+            {
+                sw.Reset();
+            }
         }
 
         protected override void OnStop()
         {
+            timer.Stop();
         }
     }
 }

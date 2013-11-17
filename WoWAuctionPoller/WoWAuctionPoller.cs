@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Diagnostics;
+using System.Net;
 
 namespace WoWAuctionPoller
 {
@@ -40,6 +41,7 @@ namespace WoWAuctionPoller
     }
     public class WoWAuctionPoller
     {
+        public static DateTime UNIX_EPOCH = new DateTime(1970, 1, 1, 0, 0, 0);
         public String BaseAPI { get; set; }
         public void QueryAuctions(String Realm, IEnumerable<String> Factions)
         {
@@ -48,7 +50,7 @@ namespace WoWAuctionPoller
 
             String AuctionJSON = String.Empty; // This holds JSON result of auctions
             Int64 TimeStamp = 0; // This holds the time stamp
-            Int32 MaxAttempts = 3; // How many tries to get data before we give up
+            Int32 MaxAttempts = 30; // How many tries to get data before we give up
             Int32 count = 1; // Which attempt is this?
             while (AuctionJSON == String.Empty)
             {
@@ -65,6 +67,8 @@ namespace WoWAuctionPoller
                 }
                 catch (Exception ex)
                 {
+                    // Burn a little time, let blizzard get it together
+                    System.Threading.Thread.Sleep(50);
                     if (count < MaxAttempts)
                         count++;
                     else
@@ -101,7 +105,7 @@ namespace WoWAuctionPoller
                     newAuction.Bid = (Int64)item["bid"];
                     newAuction.Buyout = (Int64)item["buyout"];
                     newAuction.MyAuctionHouse = auctionHouse;
-                    newAuction.TimeStamp = TimeStamp;
+                    newAuction.TimeStamp = UNIX_EPOCH.AddMilliseconds(TimeStamp);
 
                     // Create Item if necessary
                     if (!context.Items.Any(i => i.ID == newAuction.ItemID))
@@ -150,7 +154,7 @@ namespace WoWAuctionPoller
         [Key]
         public Int32 ID { get; set; }
         public Int64 AucID { get; set; }
-        public Int64 TimeStamp { get; set; }
+        public DateTime TimeStamp { get; set; }
         public Int32? ItemID { get; set; }
         public virtual Item MyItem { get; set; }
         public Int32? AuctionHouseID { get; set; }
