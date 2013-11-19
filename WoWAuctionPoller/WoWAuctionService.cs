@@ -16,6 +16,9 @@ namespace WoWAuctionPoller
     {
         Timer timer;
         WoWAuctionPoller poller;
+
+        String SOURCE = "WoWAuctionPoller";
+        String LOG = "Application";
         public WoWAuctionService()
         {
             InitializeComponent();
@@ -29,6 +32,10 @@ namespace WoWAuctionPoller
             // Then we set the timer for more updates
             timer.Elapsed += timer_Elapsed;
             EventLog.Source = "WoWAuctionPoller";
+
+            // Build event log here, so I don't have to dont have to check all the time
+            if (!EventLog.SourceExists(SOURCE))
+                EventLog.CreateEventSource(SOURCE, LOG);
         }
 
         protected override void OnStart(string[] args)
@@ -49,20 +56,20 @@ namespace WoWAuctionPoller
             Stopwatch sw = new Stopwatch();
             try
             {
+                // Inform the routine is starting so we know the state
+                EventLog.WriteEntry(
+                    SOURCE,
+                    "Data poll starting",
+                    EventLogEntryType.Information
+                );
                 // Actually poll data
                 sw.Start();
                 poller.QueryAuctions(ConfigurationManager.AppSettings["server"], ConfigurationManager.AppSettings["factions"].Split(','));
                 sw.Stop();
 
                 // Record runtime for diagnostic purposes
-                string source = "WoWAuctionPoller";
-                string sLog = "Application";
-
-                if (!EventLog.SourceExists(source))
-                    EventLog.CreateEventSource(source, sLog);
-
                 EventLog.WriteEntry(
-                    source,
+                    SOURCE,
                     String.Format("Minutes:{0}", sw.Elapsed.TotalMinutes),
                     EventLogEntryType.Information
                 );
@@ -70,14 +77,10 @@ namespace WoWAuctionPoller
             catch(Exception ex)
             {
                 sw.Stop();
-                string source = "WoWAuctionPoller";
-                string sLog = "Application";
 
-                if (!EventLog.SourceExists(source))
-                    EventLog.CreateEventSource(source, sLog);
-
+                // Log Error
                 EventLog.WriteEntry(
-                    source,
+                    SOURCE,
                     String.Format("Message:{0}\nStack:{1}", ex.Message, ex.StackTrace),
                     EventLogEntryType.Error
                 );
