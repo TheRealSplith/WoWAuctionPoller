@@ -17,8 +17,8 @@ namespace WoWAuctionPoller
         Timer timer;
         WoWAuctionPoller poller;
 
-        String SOURCE = "WoWAuctionPoller";
-        String LOG = "Application";
+        public static String SOURCE = "WoWAuctionPoller";
+        public static String LOG = "Application";
         public WoWAuctionService()
         {
             InitializeComponent();
