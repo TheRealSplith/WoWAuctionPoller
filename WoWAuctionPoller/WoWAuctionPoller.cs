@@ -78,7 +78,7 @@ namespace WoWAuctionPoller
 
             WoWAuctionContext context = new WoWAuctionContext();
             // Create new AH if necessary
-            Parallel.ForEach(Factions, (fac) =>
+            Parallel.ForEach(Factions, new ParallelOptions { MaxDegreeOfParallelism = 4 }, (fac) =>
                 {
                     JObject AuctionData;
                     lock (AuctionJSON)
@@ -94,6 +94,9 @@ namespace WoWAuctionPoller
         {
             using (var context = new WoWAuctionContext())
             {
+                // Pure performance!
+                context.Configuration.AutoDetectChangesEnabled = false;
+
                 AuctionHouse auctionHouse;
                 if (context.AuctionHouse.Any(ah => ah.Faction == faction && ah.Realm == realm))
                     auctionHouse = context.AuctionHouse.First(ah => ah.Faction == faction && ah.Realm == realm);
