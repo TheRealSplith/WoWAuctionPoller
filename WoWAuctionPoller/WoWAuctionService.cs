@@ -42,7 +42,7 @@ namespace WoWAuctionPoller
         {
             timer.Start();
             // Initial check when service starts
-            timer_Elapsed(null, null); // Everything is loaded from Config
+            Task.Factory.StartNew(() => timer_Elapsed(null, null)); // Everything is loaded from Config
         }
 
         /// <summary>
