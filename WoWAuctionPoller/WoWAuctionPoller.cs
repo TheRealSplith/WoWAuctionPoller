@@ -76,7 +76,6 @@ namespace WoWAuctionPoller
                 }
             }
 
-            WoWAuctionContext context = new WoWAuctionContext();
             // Create new AH if necessary
             Parallel.ForEach(Factions, new ParallelOptions { MaxDegreeOfParallelism = 4 }, (fac) =>
                 {
@@ -127,34 +126,9 @@ namespace WoWAuctionPoller
                         if (!context.Items.Any(i => i.ID == newAuction.ItemID))
                         {
                             var newItem = context.Items.Create();
-                            var ItemUrl = String.Format("{0}/item/{1}", BaseAPI, newAuction.ItemID);
-                            String newItemJSON = String.Empty;
 
-                            Int32 MaxAttempts = 3; // How many tries to get data before we give up
-                            Int32 count = 1; // Which attempt is this?
-                            while (newItemJSON == String.Empty)
-                            {
-                                try
-                                {
-                                    // Get item data
-                                    WebClient web = new WebClient();
-                                    newItemJSON = web.DownloadString(ItemUrl);
-                                }
-                                catch (Exception ex)
-                                {
-                                    if (count < MaxAttempts)
-                                        count++;
-                                    else
-                                        throw ex;
-                                }
-                            }
+                            this.PollItem(newAuction.ItemID.Value, ref newItem);
 
-                            var newItemData = JObject.Parse(newItemJSON);
-
-                            newItem.ID = (Int32)newItemData["id"];
-                            newItem.Name = (String)newItemData["name"];
-
-                            Debug.WriteLine(String.Format("New Item:{0}", newItem.ID));
                             context.Items.Add(newItem);
                             context.SaveChanges();
                         }
@@ -173,6 +147,45 @@ namespace WoWAuctionPoller
                 }
                 context.SaveChanges();
             }
+        }
+
+        public void PollItem(Int32 itemID, ref Item newItem)
+        {
+            var ItemUrl = String.Format("{0}/item/{1}", this.BaseAPI, itemID);
+            String newItemJSON = String.Empty;
+
+            Int32 MaxAttempts = 3; // How many tries to get data before we give up
+            Int32 count = 1; // Which attempt is this?
+            while (newItemJSON == String.Empty)
+            {
+                try
+                {
+                    // Get item data
+                    WebClient web = new WebClient();
+                    newItemJSON = web.DownloadString(ItemUrl);
+                }
+                catch (Exception ex)
+                {
+                    if (count < MaxAttempts)
+                        count++;
+                    else
+                        throw ex;
+                }
+            }
+
+            var newItemData = JObject.Parse(newItemJSON);
+
+            newItem.ID = (Int32)newItemData["id"];
+            newItem.Name = (String)newItemData["name"];
+            newItem.Description = (String)newItemData["description"];
+            newItem.ItemLevel = (Int32)newItemData["itemLevel"];
+            newItem.Stackable = (Int32)newItemData["stackable"];
+            newItem.VendorBuyPrice = (Int64)newItemData["buyPrice"];
+            newItem.VendorSellPrice = (Int64)newItemData["sellPrice"];
+            newItem.ItemClass = (Int32)newItemData["itemClass"];
+            newItem.ItemSubClass = (Int32)newItemData["itemSubClass"];
+            newItem.Quality = (Int32)newItemData["quality"];
+            newItem.RequiredSkillRank = (Int32)newItemData["requiredSkillRank"];
         }
     }
 
@@ -202,7 +215,16 @@ namespace WoWAuctionPoller
     public class Item
     {
         [Key]
-        public Int32 ID {get;set;}
-        public String Name {get;set;}
+        public Int32 ID { get; set; }
+        public String Name { get; set; }
+        public String Description { get; set; }
+        public Int32 ItemLevel { get; set; }
+        public Int32 Stackable { get; set; }
+        public Int64 VendorBuyPrice { get; set; }
+        public Int64 VendorSellPrice { get; set; }
+        public Int32 ItemClass { get; set; }
+        public Int32 ItemSubClass { get; set; }
+        public Int32 Quality { get; set; }
+        public Int32 RequiredSkillRank { get; set; }
     }
 }
